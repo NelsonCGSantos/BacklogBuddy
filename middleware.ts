@@ -13,6 +13,10 @@ function isProtectedPath(pathname: string) {
   return protectedPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
+function isAdminPath(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
@@ -46,6 +50,18 @@ export async function middleware(request: NextRequest) {
     redirectUrl.pathname = "/";
     redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname);
     return NextResponse.redirect(redirectUrl);
+  }
+
+  if (isAdminPath(request.nextUrl.pathname)) {
+    const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
+    const userEmail = user?.email?.toLowerCase();
+
+    if (!adminEmail || !userEmail || adminEmail !== userEmail) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/library";
+      redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   return response;

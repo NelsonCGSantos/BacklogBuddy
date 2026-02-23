@@ -1,5 +1,50 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerComponentClient } from "@/lib/supabase/server-component";
+import CategoriesSection from "./categories-section";
+
+const defaultCategories = [
+  { name: "Focusing", sort_order: 1 },
+  { name: "Completed", sort_order: 2 },
+];
+
+async function ensureDefaultCategories({
+  userId,
+}: {
+  userId: string;
+}) {
+  const supabase = await createSupabaseServerComponentClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name")
+    .eq("user_id", userId)
+    .in(
+      "name",
+      defaultCategories.map((category) => category.name)
+    );
+
+  if (error) {
+    return;
+  }
+
+  const existing = new Set(
+    (data ?? []).map((category) => category.name.toLowerCase())
+  );
+  const missing = defaultCategories.filter(
+    (category) => !existing.has(category.name.toLowerCase())
+  );
+
+  if (missing.length === 0) {
+    return;
+  }
+
+  await supabase.from("categories").insert(
+    missing.map((category) => ({
+      user_id: userId,
+      name: category.name,
+      sort_order: category.sort_order,
+    }))
+  );
+}
 
 export default async function LibraryPage() {
   const supabase = await createSupabaseServerComponentClient();
@@ -10,6 +55,8 @@ export default async function LibraryPage() {
   if (!user) {
     redirect("/login");
   }
+
+  await ensureDefaultCategories({ userId: user.id });
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -25,6 +72,7 @@ export default async function LibraryPage() {
             This is the signed-in home for your media focus.
           </p>
         </header>
+        <CategoriesSection />
         <section className="rounded-3xl border border-white/10 bg-zinc-900/40 p-8 text-sm text-zinc-300">
           Your collections and focus list will appear here.
         </section>
