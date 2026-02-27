@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerComponentClient } from "@/lib/supabase/server-component";
 import CategoriesSection from "./categories-section";
+import BacklogSection from "./backlog-section";
 
 const defaultCategories = [
   { name: "Focusing", sort_order: 1 },
@@ -73,9 +74,7 @@ export default async function LibraryPage() {
           </p>
         </header>
         <CategoriesSection />
-        <section className="rounded-3xl border border-white/10 bg-zinc-900/40 p-8 text-sm text-zinc-300">
-          Your collections and focus list will appear here.
-        </section>
+        <BacklogSection />
       </main>
     </div>
   );

@@ -91,3 +91,124 @@ export async function deleteCategoryAction(categoryId: string) {
 
   return { ok: true, message: "Category deleted." };
 }
+
+export async function addUserItemAction(
+  itemId: string,
+  status: "planned" | "focusing" | "completed" | "dropped"
+) {
+  const supabase = await createSupabaseServerActionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, error: "You must be signed in to add items." };
+  }
+
+  if (!itemId) {
+    return { ok: false, error: "Select an item to add." };
+  }
+
+  const { error } = await supabase.from("user_items").upsert(
+    {
+      user_id: user.id,
+      item_id: itemId,
+      status,
+    },
+    { onConflict: "user_id,item_id" }
+  );
+
+  if (error) {
+    return { ok: false, error: "Failed to add item to backlog." };
+  }
+
+  return { ok: true, message: "Item added to backlog." };
+}
+
+export async function updateUserItemStatusAction(
+  itemId: string,
+  status: "planned" | "focusing" | "completed" | "dropped"
+) {
+  const supabase = await createSupabaseServerActionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, error: "You must be signed in to update status." };
+  }
+
+  if (!itemId) {
+    return { ok: false, error: "Item not found." };
+  }
+
+  const { error } = await supabase
+    .from("user_items")
+    .update({ status })
+    .eq("user_id", user.id)
+    .eq("item_id", itemId);
+
+  if (error) {
+    return { ok: false, error: "Failed to update status." };
+  }
+
+  return { ok: true };
+}
+
+export async function addCategoryItemAction(itemId: string, categoryId: string) {
+  const supabase = await createSupabaseServerActionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, error: "You must be signed in to update categories." };
+  }
+
+  if (!itemId || !categoryId) {
+    return { ok: false, error: "Missing category assignment." };
+  }
+
+  const { error } = await supabase.from("category_items").insert({
+    user_id: user.id,
+    item_id: itemId,
+    category_id: categoryId,
+  });
+
+  if (error) {
+    return { ok: false, error: "Failed to add category." };
+  }
+
+  return { ok: true };
+}
+
+export async function removeCategoryItemAction(
+  itemId: string,
+  categoryId: string
+) {
+  const supabase = await createSupabaseServerActionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, error: "You must be signed in to update categories." };
+  }
+
+  if (!itemId || !categoryId) {
+    return { ok: false, error: "Missing category assignment." };
+  }
+
+  const { error } = await supabase
+    .from("category_items")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("item_id", itemId)
+    .eq("category_id", categoryId);
+
+  if (error) {
+    return { ok: false, error: "Failed to remove category." };
+  }
+
+  return { ok: true };
+}
